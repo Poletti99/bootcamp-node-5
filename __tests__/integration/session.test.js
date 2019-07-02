@@ -15,6 +15,10 @@ describe('Authentication', () => {
     await truncate();
   });
 
+  beforeAll(() => {
+    nodemailer.createTransport.mockReturnValue(transport);
+  });
+
   it('should be able to authenticate with valid credentials', async () => {
     const user = await factory.create('User', {
       password: '123123'
@@ -76,12 +80,17 @@ describe('Authentication', () => {
   });
 
   it('should receive email notification when authenticated', async () => {
-    const user = await factory.create('User');
+    const user = await factory.create('User', {
+      password: '123123'
+    });
 
     const response = await request(app)
-      .get('/dashboard')
-      .set('Authorization', `Bearer ${user.generateToken()}`);
+      .post('/sessions')
+      .send({ email: user.email, password: user.password });
 
-    expect();
+    expect(transport.sendMail).toHaveBeenCalledTimes(1);
+    expect(transport.sendMail.mock.calls[0][0].to).toBe(
+      `${user.name} <${user.email}>`
+    );
   });
 });
